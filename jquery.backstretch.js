@@ -7,6 +7,9 @@
  *
  * Copyright (c) 2011 Scott Robbin (srobbin.com)
  * Dual licensed under the MIT and GPL licenses.
+ *
+ * modified 2011-12-01 by Bartlomiej Walczak (feniks@akcja.pl)
+ * added fitWidth and fitHeight options and relevant code
 */
 
 (function($) {
@@ -15,13 +18,15 @@
         var defaultSettings = {
             centeredX: true,         // Should we center the image on the X axis?
             centeredY: true,         // Should we center the image on the Y axis?
-            speed: 0                 // fadeIn speed for background after image loads (e.g. "fast" or 500)
+            speed: 0,                // fadeIn speed for background after image loads (e.g. "fast" or 500)
+    					fitHeight: false,				 // fit height of the image within root element limits
+						fitWidth: true,				   // fit width of the image within root element limits - default behaviour so far
         },
         container = $("#backstretch"),
         settings = container.data("settings") || defaultSettings, // If this has been called once before, use the old settings as the default
         existingSettings = container.data('settings'),
         rootElement = ("onorientationchange" in window) ? $(document) : $(window), // hack to acccount for iOS position:fixed shortcomings
-        imgRatio, bgImg, bgWidth, bgHeight, bgOffset, bgCSS;
+        imgRatio, bgImg, bgWidth, bgHeight, bgOffset, bgCSS, imgWidth, imgHeight;
                 
         // Extend the settings with those the user has provided
         if(options && typeof options == "object") $.extend(settings, options);
@@ -51,8 +56,7 @@
                 
                 img = $("<img />").css({position: "absolute", display: "none", margin: 0, padding: 0, border: "none", zIndex: -999999})
                                   .bind("load", function(e) {                                          
-                                      var self = $(this),
-                                          imgWidth, imgHeight;
+                                      var self = $(this);
                                           
                                       self.css({width: "auto", height: "auto"});
                                       imgWidth = this.width || $(e.target).width();
@@ -88,23 +92,83 @@
         function _adjustBG(fn) {
             try {
                 bgCSS = {left: 0, top: 0}
-                bgWidth = rootElement.width();
-                bgHeight = bgWidth / imgRatio;
-                
+								
                 // Make adjustments based on image ratio
                 // Note: Offset code provided by Peter Baker (http://ptrbkr.com/). Thanks, Peter!
-                if(bgHeight >= rootElement.height()) {
-                    bgOffset = (bgHeight - rootElement.height()) /2;
-                    if(settings.centeredY) $.extend(bgCSS, {top: "-" + bgOffset + "px"});
+								
+                if((imgHeight >= rootElement.height()) || (imgWidth >= rootElement.width())) {
+										// calculate fit height image
+										bgHeight = rootElement.height();
+										bgWidth = bgHeight * imgRatio; 
+										// see if width is wider than element
+										if ((bgWidth > rootElement.width())) {
+											bgWidth = rootElement.width();
+											if (settings.fitWidth) {
+												// adjust height
+												imgWidth = bgWidth;											
+												imgHeight = imgWidth / imgRatio;
+												// adjust vertical offset
+												bgOffset = (bgHeight - imgHeight) / 2;
+												if(settings.centeredY) $.extend(bgCSS, {top: bgOffset + "px"});
+											} else if (settings.fitHeight && !settings.fitWidth) {
+												imgHeight = bgHeight;
+												imgWidth = imgHeight * imgRatio; 
+												// stretch background
+												bgWidth = rootElement.width();
+												// adjust horizonal offset
+												bgOffset = (imgWidth - bgWidth) / 2;
+												if(settings.centeredX) $.extend(bgCSS, {left: "-" + bgOffset + "px"});																								
+											} else {											
+												// adjust both offsets
+												if (imgHeight > bgHeight) {
+													bgOffset = (imgHeight - bgHeight) / 2;
+													if(settings.centeredY) $.extend(bgCSS, {top: "-" + bgOffset + "px"});
+												} else {
+													bgOffset = (bgHeight - imgHeight) / 2;
+													if(settings.centeredY) $.extend(bgCSS, {top: bgOffset + "px"});													
+												}
+												bgOffset = (imgWidth - bgWidth) / 2;
+												if(settings.centeredX) $.extend(bgCSS, {left: "-" + bgOffset + "px"});																								
+											}
+										} else {
+											// stretch background
+											bgWidth = rootElement.width();
+											if (settings.fitHeight) {
+												// adjust width
+												imgHeight = bgHeight;
+												imgWidth = imgHeight * imgRatio;											
+												// adjust horizonal offset
+												bgOffset = (bgWidth - imgWidth ) / 2;
+												if(settings.centeredX) $.extend(bgCSS, {left: bgOffset + "px"});
+											} else if (settings.fitWidth && !settings.fitHeight) {
+												// adjust height
+												bgWidth = rootElement.width();
+												imgWidth = bgWidth;											
+												imgHeight = imgWidth / imgRatio;
+												// adjust vertical offset
+												bgOffset = (bgHeight - imgHeight) / 2;
+												if(settings.centeredY) $.extend(bgCSS, {top: bgOffset + "px"});												
+											} else {
+												// adjust both offsets
+												bgOffset = (imgHeight - bgHeight) / 2;
+												if(settings.centeredY) $.extend(bgCSS, {top: "-" + bgOffset + "px"});
+												bgOffset = (imgWidth - bgWidth) / 2;
+												if(settings.centeredX) $.extend(bgCSS, {left: "-" + bgOffset + "px"});																								
+											}
+												
+										}					
                 } else {
-                    bgHeight = rootElement.height();
-                    bgWidth = bgHeight * imgRatio;
-                    bgOffset = (bgWidth - rootElement.width()) / 2;
-                    if(settings.centeredX) $.extend(bgCSS, {left: "-" + bgOffset + "px"});
+									// enlarge to fit in height
+									imgHeight = rootElement.height();
+									imgWidth = imgHeight * imgRatio;
+									bgHeight = imgHeight;
+									bgWidth = rootElement.width();
+									// adjust horizontal offset
+									bgOffset = (imgWidth - bgWidth) / 2;
+									if(settings.centeredX) $.extend(bgCSS, {left: "-" + bgOffset + "px"});																								
                 }
-
-                $("#backstretch, #backstretch img:not(.deleteable)").width( bgWidth ).height( bgHeight )
-                                                   .filter("img").css(bgCSS);
+                $("#backstretch").width( bgWidth ).height( bgHeight );
+                $("#backstretch img:not(.deleteable)").width( imgWidth ).height( imgHeight ).css(bgCSS);
             } catch(err) {
                 // IE7 seems to trigger _adjustBG before the image is loaded.
                 // This try/catch block is a hack to let it fail gracefully.
