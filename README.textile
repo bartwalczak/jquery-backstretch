@@ -25,7 +25,7 @@ h3. fitWidth
 
 Boolean. If true, then the picture width will always be equal or smaller than the width of the browser frame. Default: true.
 
-h4. fitHeight
+h3. fitHeight
 
 Boolean. If true, then the picture height will always be equal or smaller than the height of the browser frame. Default: false.
 
