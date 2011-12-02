@@ -21,6 +21,13 @@ h3. speed
 
 This is the speed at which the image will fade in, after downloading is complete. Integers are accepted, as well as standard jQuery speed strings (slow, normal, fast). (type=Integer, default=0)
 
+h3. fitWidth
+
+Boolean. If true, then the picture width will always be equal or smaller than the width of the browser frame. Default: true.
+
+h4. fitHeight
+
+Boolean. If true, then the picture height will always be equal or smaller than the height of the browser frame. Default: false.
 
 h2. Setup
 
